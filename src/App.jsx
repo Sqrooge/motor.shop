@@ -199,12 +199,192 @@ function PopBadge({model,analytics}){
 // ══════════════════════════════════════════════════════════════════════════════
 // DETAIL MODAL
 // ══════════════════════════════════════════════════════════════════════════════
+// ── Prijs SVG chart (pure SVG, geen library nodig) ───────────────────────────
+function PriceChart({ history, currentPrice, fairValue, catalogus }) {
+  if (!history || history.length < 2) return null;
+
+  const W = 520, H = 120, PL = 52, PR = 12, PT = 16, PB = 28;
+  const IW = W - PL - PR, IH = H - PT - PB;
+
+  const prices  = [...history.map(h => h.price), currentPrice].filter(Boolean);
+  const minP    = Math.min(...prices) * 0.94;
+  const maxP    = Math.max(...prices, fairValue || 0, catalogus || 0) * 1.04;
+  const range   = maxP - minP || 1;
+
+  const toX = (i, total) => PL + (i / (total - 1)) * IW;
+  const toY = (p)         => PT + IH - ((p - minP) / range) * IH;
+
+  // Build path for price line
+  const pts = history.map((h, i) => `${toX(i, history.length)},${toY(h.price)}`).join(" L ");
+  const areaPath = `M ${toX(0, history.length)},${toY(history[0].price)} L ${pts.slice(pts.indexOf(",") + 1)} L ${toX(history.length - 1, history.length)},${H - PB} L ${PL},${H - PB} Z`;
+
+  // Y-axis ticks (4 levels)
+  const ticks = [0, 0.33, 0.66, 1].map(t => minP + t * range);
+
+  // X-axis labels — dates
+  const xLabels = history
+    .map((h, i) => ({ i, label: h.recorded_at ? new Date(h.recorded_at).toLocaleDateString("nl-NL", { day:"numeric", month:"short" }) : `#${i+1}` }))
+    .filter((_, i, a) => i === 0 || i === Math.floor(a.length / 2) || i === a.length - 1);
+
+  const lastPriceY = toY(history[history.length - 1].price);
+  const fairY      = fairValue ? toY(fairValue) : null;
+  const catY       = catalogus ? toY(Math.min(catalogus, maxP)) : null;
+
+  // Trend: laatste prijs vs eerste prijs
+  const trend = history.length >= 2
+    ? history[history.length - 1].price - history[0].price
+    : 0;
+  const trendPct = history[0].price ? Math.round((trend / history[0].price) * 100) : 0;
+  const trendCol = trend < 0 ? "#69f0ae" : trend > 0 ? "#f44336" : "#555";
+
+  return (
+    <div style={{ background:"#111", border:"1px solid #1a1a1a", padding:"14px 16px" }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"10px" }}>
+        <div style={{ fontSize:"9px", color:"#ff6b00", letterSpacing:"3px" }}>PRIJSHISTORIEK</div>
+        <div style={{ display:"flex", gap:"12px", alignItems:"center" }}>
+          {trend !== 0 && (
+            <span style={{ fontSize:"11px", color:trendCol, fontWeight:"700" }}>
+              {trend < 0 ? "▼" : "▲"} {Math.abs(trendPct)}% {trend < 0 ? "gedaald" : "gestegen"}
+            </span>
+          )}
+          <div style={{ display:"flex", gap:"8px" }}>
+            {[
+              { col:"#ff6b00", label:"Vraagprijs" },
+              { col:"#69f0ae", label:"Marktwaarde" },
+              { col:"#2a2a2a", label:"Catalogus" },
+            ].map(l => (
+              <div key={l.label} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                <div style={{ width:"16px", height:"2px", background:l.col, borderRadius:"1px" }}/>
+                <span style={{ fontSize:"8px", color:"#444" }}>{l.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display:"block", overflow:"visible" }}>
+        {/* Grid lines + Y labels */}
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={PL} y1={toY(t)} x2={W - PR} y2={toY(t)} stroke="#1a1a1a" strokeWidth="1"/>
+            <text x={PL - 4} y={toY(t) + 4} textAnchor="end" fill="#333" fontSize="9" fontFamily="monospace">
+              {(t / 1000).toFixed(0)}k
+            </text>
+          </g>
+        ))}
+
+        {/* Catalogus reference line */}
+        {catY && (
+          <line x1={PL} y1={catY} x2={W - PR} y2={catY}
+            stroke="#2a2a2a" strokeWidth="1" strokeDasharray="4 4"/>
+        )}
+
+        {/* Fair value reference line */}
+        {fairY && (
+          <line x1={PL} y1={fairY} x2={W - PR} y2={fairY}
+            stroke="#69f0ae" strokeWidth="1" strokeDasharray="4 4" opacity="0.5"/>
+        )}
+
+        {/* Area fill */}
+        <path d={areaPath} fill="url(#priceGrad)" opacity="0.3"/>
+
+        {/* Price line */}
+        <polyline
+          points={history.map((h, i) => `${toX(i, history.length)},${toY(h.price)}`).join(" ")}
+          fill="none" stroke="#ff6b00" strokeWidth="2" strokeLinejoin="round"/>
+
+        {/* Data points */}
+        {history.map((h, i) => {
+          const isLast = i === history.length - 1;
+          const isPrev = i < history.length - 1 && history[i+1].price !== h.price;
+          return (
+            <g key={i}>
+              <circle cx={toX(i, history.length)} cy={toY(h.price)}
+                r={isLast ? 5 : 3} fill={isLast ? "#ff6b00" : "#0d0d0d"}
+                stroke="#ff6b00" strokeWidth={isLast ? 2 : 1.5}/>
+              {/* Price tooltip on last point */}
+              {isLast && (
+                <text x={toX(i, history.length)} y={toY(h.price) - 9}
+                  textAnchor="middle" fill="#ff6b00" fontSize="10" fontWeight="700" fontFamily="monospace">
+                  €{(h.price/1000).toFixed(1)}k
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {/* X labels */}
+        {xLabels.map(({ i, label }) => (
+          <text key={i} x={toX(i, history.length)} y={H - 4}
+            textAnchor="middle" fill="#333" fontSize="9" fontFamily="monospace">
+            {label}
+          </text>
+        ))}
+
+        <defs>
+          <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor="#ff6b00" stopOpacity="0.4"/>
+            <stop offset="100%" stopColor="#ff6b00" stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Stats row */}
+      <div style={{ display:"flex", gap:"16px", marginTop:"8px", paddingTop:"8px", borderTop:"1px solid #1a1a1a" }}>
+        {[
+          { l:"HOOGSTE",  v: `€${Math.max(...history.map(h=>h.price)).toLocaleString("nl-NL")}`, c:"#f44336" },
+          { l:"LAAGSTE",  v: `€${Math.min(...history.map(h=>h.price)).toLocaleString("nl-NL")}`, c:"#69f0ae" },
+          { l:"GEMIDDELD",v: `€${Math.round(history.reduce((s,h)=>s+h.price,0)/history.length).toLocaleString("nl-NL")}`, c:"#888" },
+          { l:"METINGEN", v: history.length, c:"#555" },
+        ].map(s => (
+          <div key={s.l}>
+            <div style={{ fontSize:"7px", color:"#2a2a2a", letterSpacing:"2px" }}>{s.l}</div>
+            <div style={{ fontSize:"13px", fontWeight:"700", color:s.c, fontFamily:"monospace" }}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DetailModal({listing,analytics,onClose}){
-  const{mv,score,cat,price,km,year,brand,model,kenteken,type}=listing;
+  const{mv,score,cat,price,km,year,brand,model,kenteken,type,id}=listing;
   const rdw=useRDW(kenteken,year,km);
   const saving=mv.fair-price,gaugeVal=Math.max(0,Math.min(100,Math.round((2-price/mv.fair)*50)));
   const tierCol=TIER_COLORS[mv.tier]||"#374151",brandCol=BRAND_COLORS[brand]||"#ff6b00";
   const clicks=analytics?.modelClicks?.[model];
+
+  // Prijshistoriek — haal op van API of gebruik mock data voor prototype
+  const [priceHistory, setPriceHistory] = useState(null);
+  useEffect(() => {
+    // Mock data voor prototype — vervangt echte API call
+    const mockHistory = generateMockHistory(price, year);
+    setPriceHistory(mockHistory);
+    // In productie: fetch(`${API}/api/listings/${id}/price-history`, {credentials:"include"})
+    //   .then(r=>r.json()).then(d=>setPriceHistory(d.history||[]));
+  }, [id, price]);
+
+  function generateMockHistory(currentPrice, bouwjaar) {
+    // Simuleer realistisch prijsverloop: geleidelijk dalend over 6-18 maanden
+    const now      = Date.now();
+    const points   = 6 + Math.floor(Math.random() * 8); // 6-14 datapunten
+    const history  = [];
+    const startPrice = Math.round(currentPrice * (1 + 0.05 + Math.random() * 0.12));
+    for (let i = 0; i < points; i++) {
+      const t     = now - (points - 1 - i) * (30 + Math.floor(Math.random() * 20)) * 24 * 3600 * 1000;
+      const ratio = i / (points - 1);
+      // Geleidelijk dalen met kleine fluctuaties
+      const base  = startPrice - (startPrice - currentPrice) * ratio;
+      const jitter = (Math.random() - 0.3) * 200;
+      history.push({
+        price:       Math.round(Math.max(currentPrice * 0.9, base + jitter)),
+        recorded_at: new Date(t).toISOString(),
+      });
+    }
+    // Zorg dat het laatste punt altijd de huidige prijs is
+    history[history.length - 1].price = currentPrice;
+    return history;
+  }
 
   // APK timeline
   const ApkRow=({entry})=>{
@@ -326,6 +506,16 @@ function DetailModal({listing,analytics,onClose}){
               </div>
             );
           })()}
+
+          {/* Prijshistoriek grafiek */}
+          {priceHistory && priceHistory.length >= 2 && (
+            <PriceChart
+              history={priceHistory}
+              currentPrice={price}
+              fairValue={mv.fair}
+              catalogus={cat}
+            />
+          )}
 
           {/* Berekening */}
           <div style={{background:"#111",border:"1px solid #1a1a1a",padding:"12px 14px"}}>
