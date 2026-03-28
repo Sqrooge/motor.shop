@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// MOTOR.SHOP BACKEND SERVER
+// MOTOR.SHOP BACKEND SERVER — met graceful shutdown + request logging
 // ══════════════════════════════════════════════════════════════════════════════
 import "dotenv/config";
 import express        from "express";
@@ -12,11 +12,10 @@ import { getDb }      from "./utils/database.js";
 import apiRoutes      from "./routes/api.js";
 import fs             from "fs";
 
-// Zorg voor logs-map
 fs.mkdirSync("./logs", { recursive: true });
 
 const app  = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || "3001");
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -25,36 +24,59 @@ app.use(cors({
   origin:      process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 }));
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "512kb" }));
 
-// Rate limiting
-app.use("/api/scrape", rateLimit({ windowMs: 60 * 1000, max: 5,  message: "Te veel scrape-verzoeken" }));
-app.use("/api",        rateLimit({ windowMs: 60 * 1000, max: 300, message: "Rate limit bereikt" }));
+// Request logging (compact)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const ms    = Date.now() - start;
+    const level = res.statusCode >= 500 ? "error" : res.statusCode >= 400 ? "warn" : "debug";
+    logger[level](`${req.method} ${req.path} ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
+// Rate limits
+app.use("/api/scrape", rateLimit({ windowMs: 60_000, max: 5,   message: { ok: false, error: "Te veel scrape-verzoeken" } }));
+app.use("/api",        rateLimit({ windowMs: 60_000, max: 300,  message: { ok: false, error: "Rate limit bereikt" } }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use("/api", apiRoutes);
 
-// Health check
-app.get("/health", (req, res) => {
-  res.json({ ok: true, version: "0.1.0", time: new Date().toISOString() });
-});
+app.get("/health", (req, res) => res.json({
+  ok: true, version: "0.1.0", uptime: Math.round(process.uptime()),
+  memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + "MB",
+  time: new Date().toISOString(),
+}));
 
-// 404
 app.use((req, res) => res.status(404).json({ ok: false, error: "Niet gevonden" }));
-
-// Error handler
 app.use((err, req, res, next) => {
-  logger.error("Unhandled error", { error: err.message });
+  logger.error("Unhandled", { error: err.message, stack: err.stack?.slice(0, 300) });
   res.status(500).json({ ok: false, error: "Interne serverfout" });
 });
 
+// ── Graceful shutdown ─────────────────────────────────────────────────────────
+function shutdown(signal) {
+  logger.info(`${signal} ontvangen — server afsluiten...`);
+  server.close(() => {
+    logger.info("HTTP server gesloten");
+    try { getDb().close(); logger.info("Database gesloten"); } catch {}
+    process.exit(0);
+  });
+  // Force exit na 10s als niet netjes afgesloten
+  setTimeout(() => { logger.error("Forceer exit na timeout"); process.exit(1); }, 10_000);
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  // Initialiseer DB
-  getDb();
-  logger.info(`Motor.shop backend draait op http://localhost:${PORT}`);
-  logger.info(`API: http://localhost:${PORT}/api/listings`);
-  logger.info(`Health: http://localhost:${PORT}/health`);
+getDb(); // DB initialiseren bij start
+const server = app.listen(PORT, () => {
+  logger.info(`Motor.shop backend → http://localhost:${PORT}`);
 });
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
+process.on("uncaughtException",  err => { logger.error("Uncaught",  { error: err.message }); });
+process.on("unhandledRejection", err => { logger.error("Unhandled", { error: String(err)   }); });
 
 export default app;
