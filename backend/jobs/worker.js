@@ -7,7 +7,7 @@ import cron        from "node-cron";
 import { runScrapeAll } from "./scrapeAll.js";
 import { logger }  from "../utils/logger.js";
 
-const SCHEDULE = process.env.CRON_SCHEDULE || "0 */6 * * *"; // elke 6 uur
+const SCHEDULE = process.env.CRON_SCHEDULE || "0 3,7,11,15,19,23 * * *"; // 03:00 · 07:00 · 11:00 · 15:00 · 19:00 · 23:00
 
 logger.info(`Cron worker gestart. Schema: ${SCHEDULE}`);
 logger.info(`Volgende run: ${getNextRun(SCHEDULE)}`);
