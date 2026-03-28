@@ -346,7 +346,159 @@ function DetailModal({listing,analytics,onClose}){
 // ══════════════════════════════════════════════════════════════════════════════
 // LISTING CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function ListingCard({listing,analytics,onOpen,distKm,fmtDist}){
+// ══════════════════════════════════════════════════════════════════════════════
+// FAVORIET STERRETJE + NOTIFY POPUP
+// ══════════════════════════════════════════════════════════════════════════════
+const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+// Favoriet popup — vraagt na opslaan of je een alert wil instellen
+function FavoritePopup({ listing, onAlert, onDismiss }) {
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:8000,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",pointerEvents:"none"}}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"#0d0d0d",border:"1px solid #ff6b0055",borderRadius:"4px",
+        width:"100%",maxWidth:"360px",padding:"20px",pointerEvents:"all",
+        animation:"slideUp 0.25s ease",boxShadow:"0 0 40px rgba(255,107,0,0.15)"
+      }}>
+        <div style={{display:"flex",gap:"12px",alignItems:"flex-start",marginBottom:"14px"}}>
+          <span style={{fontSize:"28px",flexShrink:0}}>⭐️</span>
+          <div>
+            <div style={{fontSize:"14px",fontWeight:"800",color:"#fff",lineHeight:1.2}}>
+              Opgeslagen als favoriet
+            </div>
+            <div style={{fontSize:"11px",color:"#555",marginTop:"4px",lineHeight:1.5}}>
+              <strong style={{color:"#aaa"}}>{listing.model.replace(listing.brand+" ","")}</strong>
+              {" "}staat in je favorieten.
+            </div>
+          </div>
+        </div>
+
+        <div style={{background:"#111",border:"1px solid #1a1a1a",borderRadius:"3px",padding:"12px 14px",marginBottom:"14px"}}>
+          <div style={{fontSize:"11px",color:"#888",lineHeight:1.6}}>
+            🔔 Wil je ook een melding ontvangen als er<br/>
+            <strong style={{color:"#fff"}}>vergelijkbare {listing.brand} motoren</strong> worden aangeboden?
+          </div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+          <button onClick={onAlert}
+            style={{background:"#ff6b00",border:"none",color:"#000",padding:"10px",
+              fontSize:"12px",fontWeight:"900",letterSpacing:"1px",cursor:"pointer",
+              fontFamily:"inherit",borderRadius:"3px"}}>
+            JA, ALERT INSTELLEN
+          </button>
+          <button onClick={onDismiss}
+            style={{background:"none",border:"1px solid #222",color:"#555",padding:"10px",
+              fontSize:"12px",cursor:"pointer",fontFamily:"inherit",borderRadius:"3px"}}>
+            Nee, bedankt
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Favoriet knop — ster icoon op de kaart
+function FavoriteButton({ listing, user, onRequestLogin }) {
+  const [isFav,    setIsFav]    = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [showPopup,setShowPopup]= useState(false);
+  const [showAlert,setShowAlert]= useState(false);
+
+  // Laad favoriet-status
+  useEffect(() => {
+    if (!user || !listing.id) return;
+    fetch(`${API}/api/auth/favorites`, { credentials:"include" })
+      .then(r => r.json())
+      .then(d => {
+        const favIds = (d.favorites || []).map(f => f.id);
+        setIsFav(favIds.includes(listing.id));
+      })
+      .catch(() => {});
+  }, [user, listing.id]);
+
+  const toggle = async (e) => {
+    e.stopPropagation(); // kaart niet openen
+    if (!user) { onRequestLogin(); return; }
+    setLoading(true);
+    try {
+      if (isFav) {
+        // Verwijder favoriet
+        await fetch(`${API}/api/auth/favorites/${listing.id}`, {
+          method:"DELETE", credentials:"include",
+        });
+        setIsFav(false);
+      } else {
+        // Voeg toe
+        await fetch(`${API}/api/auth/favorites/${listing.id}`, {
+          method:"POST", credentials:"include",
+        });
+        setIsFav(true);
+        setShowPopup(true); // toon notify popup
+        // Auto-dismiss na 6s
+        setTimeout(() => setShowPopup(false), 6000);
+      }
+    } catch {}
+    setLoading(false);
+  };
+
+  const handleAlert = async () => {
+    setShowPopup(false);
+    // Maak automatisch een alert aan op basis van dit model
+    try {
+      await fetch(`${API}/api/auth/alerts`, {
+        method:"POST", credentials:"include",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          brand:    listing.brand,
+          type:     listing.type   || null,
+          maxPrice: listing.price ? Math.round(listing.price * 1.15) : null, // ±15% marge
+        }),
+      });
+    } catch {}
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
+  };
+
+  return (
+    <>
+      <button onClick={toggle} disabled={loading} title={isFav ? "Verwijder favoriet" : "Opslaan als favoriet"}
+        style={{
+          position:"absolute", top:"8px", left:"50%", transform:"translateX(-50%)",
+          background: isFav ? "#1a1200" : "rgba(0,0,0,0.7)",
+          border: `1px solid ${isFav ? "#ff6b00" : "#333"}`,
+          borderRadius:"50%", width:"30px", height:"30px",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          cursor: loading ? "default" : "pointer",
+          fontSize:"14px", transition:"all 0.2s", zIndex:3,
+          boxShadow: isFav ? "0 0 12px rgba(255,107,0,0.4)" : "none",
+        }}>
+        {loading ? <span style={{fontSize:"10px",animation:"spin 0.6s linear infinite",display:"inline-block"}}>⟳</span>
+                 : <span style={{filter: isFav ? "none" : "grayscale(1) opacity(0.5)",
+                              transform: isFav ? "scale(1.1)" : "scale(1)", transition:"all 0.2s"}}>⭐️</span>}
+      </button>
+
+      {showPopup && (
+        <FavoritePopup
+          listing={listing}
+          onAlert={handleAlert}
+          onDismiss={() => setShowPopup(false)}
+        />
+      )}
+
+      {showAlert && (
+        <div style={{position:"fixed",bottom:"24px",left:"50%",transform:"translateX(-50%)",
+          background:"#001508",border:"1px solid #69f0ae44",borderRadius:"3px",
+          padding:"10px 18px",zIndex:9000,fontSize:"12px",color:"#69f0ae",
+          animation:"slideUp 0.2s ease",whiteSpace:"nowrap"}}>
+          ✅ Alert ingesteld voor {listing.brand} motoren
+        </div>
+      )}
+    </>
+  );
+}
+
+function ListingCard({listing,analytics,onOpen,distKm,fmtDist,user,onRequestLogin}){
   const[hov,setHov]=useState(false);
   const{score,mv,price,cat,brand,kenteken,year,km,model}=listing;
   const saving=mv.fair-price,tierCol=TIER_COLORS[mv.tier]||"#374151",brandCol=BRAND_COLORS[brand]||"#ff6b00";
@@ -367,6 +519,7 @@ function ListingCard({listing,analytics,onOpen,distKm,fmtDist}){
           <PopBadge model={model} analytics={analytics}/>
         </div>
         <div style={{position:"absolute",bottom:0,left:0,right:0,height:"2px",background:`linear-gradient(90deg,${brandCol}00,${brandCol}55,${brandCol}00)`}}/>
+        <FavoriteButton listing={listing} user={user} onRequestLogin={onRequestLogin}/>
       </div>
       <div style={{padding:"10px 12px",flex:1,display:"flex",flexDirection:"column",gap:"6px"}}>
         <div>
@@ -711,7 +864,7 @@ export default function MotorShop(){
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:"10px"}}>
             {gridItems.map((item,i)=>(
               <div key={`${item.type}-${i}`} style={{animation:"fadeUp 0.4s ease both",animationDelay:`${Math.min(i,12)*0.05}s`}}>
-                {item.type==="listing"&&<ListingCard listing={item.listing} analytics={analytics} onOpen={handleOpen} distKm={distKm} fmtDist={fmtDist}/>}
+                {item.type==="listing"&&<ListingCard listing={item.listing} analytics={analytics} onOpen={handleOpen} distKm={distKm} fmtDist={fmtDist} user={user} onRequestLogin={()=>setShowSignIn(true)}/>}
                 {item.type==="native"&&<NativeAd ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
                 {item.type==="sponsored"&&<SponsoredListing ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
               </div>
