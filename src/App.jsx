@@ -6,6 +6,9 @@ import {
 import {
   ADS, selectAd, NativeAd, BannerAd, SponsoredListing, AnalyticsPanel,
 } from "./ads.jsx";
+import {
+  useAuth, useFirstVisitModal, SignInModal, UserMenu, UserAvatar,
+} from "./auth.jsx";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // RDW API
@@ -455,6 +458,9 @@ export default function MotorShop(){
   const[activeSrc,setActiveSrc]=useState("Alle");
   const[showDash,setShowDash]=useState(false);
   const[analytics,setAnalytics]=useState({modelClicks:{},brandClicks:{},typeClicks:{},adClicks:{},sessions:[]});
+  const { user, loading: authLoading, logout } = useAuth();
+  const [showSignIn, setShowSignIn]   = useFirstVisitModal(user, authLoading);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const logRef=useRef(null);
 
   // Laad analytics on mount
@@ -615,6 +621,13 @@ export default function MotorShop(){
               onMouseLeave={e=>{e.target.style.borderColor="#222";e.target.style.color="#444"}}>
               📊 DASHBOARD
             </button>
+            {user
+              ? <UserAvatar user={user} onClick={()=>setShowUserMenu(v=>!v)}/>
+              : <button onClick={()=>setShowSignIn(true)}
+                  style={{background:"#ff6b00",border:"none",color:"#000",padding:"7px 16px",fontSize:"11px",fontWeight:"900",letterSpacing:"2px",cursor:"pointer",fontFamily:"inherit",borderRadius:"3px"}}>
+                  INLOGGEN
+                </button>
+            }
           </div>
         </div>
       </div>
@@ -713,6 +726,8 @@ export default function MotorShop(){
       </div>
 
       {selected&&<DetailModal listing={selected} analytics={analytics} onClose={()=>setSelected(null)}/>}
+      {showSignIn&&!user&&<SignInModal onClose={()=>setShowSignIn(false)} onUser={()=>{}}/>}
+      {showUserMenu&&user&&<UserMenu user={user} onLogout={()=>{logout();setShowUserMenu(false);}} onClose={()=>setShowUserMenu(false)}/>}
       {showDash&&<AnalyticsPanel analytics={analytics} onClose={()=>setShowDash(false)}/>}
     </div>
   );

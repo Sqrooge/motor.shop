@@ -8,6 +8,10 @@ import helmet         from "helmet";
 import compression    from "compression";
 import rateLimit      from "express-rate-limit";
 import { logger }     from "./utils/logger.js";
+import cookieParser  from "cookie-parser";
+import session       from "express-session";
+import { initAuthSchema } from "./utils/auth.js";
+import authRoutes, { passport } from "./routes/auth.js";
 import { getDb }      from "./utils/database.js";
 import apiRoutes      from "./routes/api.js";
 import fs             from "fs";
@@ -24,6 +28,18 @@ app.use(cors({
   origin:      process.env.FRONTEND_URL || "http://localhost:3000",
   credentials: true,
 }));
+app.use(cookieParser());
+app.use(session({
+  secret:            process.env.SESSION_SECRET || "dev-session-secret",
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    secure:   process.env.NODE_ENV === "production",
+    maxAge:   7 * 24 * 3600 * 1000,
+    sameSite: "lax",
+  },
+}));
+app.use(passport.initialize());
 app.use(express.json({ limit: "512kb" }));
 
 // Request logging (compact)
@@ -42,6 +58,7 @@ app.use("/api/scrape", rateLimit({ windowMs: 60_000, max: 5,   message: { ok: fa
 app.use("/api",        rateLimit({ windowMs: 60_000, max: 300,  message: { ok: false, error: "Rate limit bereikt" } }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
+app.use("/api/auth", authRoutes);
 app.use("/api", apiRoutes);
 
 app.get("/health", (req, res) => res.json({
@@ -69,7 +86,8 @@ function shutdown(signal) {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-getDb(); // DB initialiseren bij start
+const _db = getDb();
+initAuthSchema(_db);
 const server = app.listen(PORT, () => {
   logger.info(`Motor.shop backend → http://localhost:${PORT}`);
 });
