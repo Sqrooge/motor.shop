@@ -178,3 +178,8 @@ export class BaseScraper {
     return map[lower] || (s.charAt(0).toUpperCase() + s.slice(1));
   }
 }
+
+// Geocoding wordt asynchroon uitgevoerd na het scrapen (batch, niet per listing)
+// zodat de rate-limit van Nominatim gerespecteerd wordt
+// base.js exporteert geocodeListings voor gebruik in scrapeAll.js
+export { geocodeListings } from "../utils/geocoder.js";

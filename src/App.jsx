@@ -156,21 +156,21 @@ function getScore(price,fair){
 // ══════════════════════════════════════════════════════════════════════════════
 const SOURCES=["Marktplaats","2dehands","Facebook Marketplace","eBay Motors","AutoScout24","Motortreffer"];
 const RAW=[
-  {id:1, brand:"BMW",            model:"BMW R 1250 GS Adventure",              modelKey:"R 1250 GS Adventure",         year:2021,price:21500,km:14200,source:"Marktplaats",         loc:"Amsterdam", type:"Adventure / Enduro",   cat:23900,kenteken:"KZ-123-B"},
-  {id:2, brand:"BMW",            model:"BMW S 1000 RR M",                       modelKey:"S 1000 RR M",                  year:2022,price:28500,km:4100, source:"AutoScout24",          loc:"Utrecht",   type:"Sport / Supersport",   cat:31000,kenteken:"BM-997-R"},
-  {id:3, brand:"Ducati",         model:"Ducati Panigale V4 R",                  modelKey:"Panigale V4 R",                year:2021,price:34500,km:2800, source:"eBay Motors",          loc:"Rotterdam", type:"Sport / Supersport",   cat:41000,kenteken:"DV-290-R"},
-  {id:4, brand:"Ducati",         model:"Ducati Scrambler Icon",                 modelKey:"Scrambler Icon",               year:2020,price:6800, km:9800, source:"Marktplaats",         loc:"Haarlem",   type:"Retro / Café Racer",   cat:10200,kenteken:"SC-611-D"},
-  {id:5, brand:"Harley-Davidson",model:"Harley-Davidson Heritage Classic Limited",modelKey:"Heritage Classic Limited",   year:2020,price:23500,km:5200, source:"Facebook Marketplace",loc:"Breda",     type:"Cruiser / Chopper",    cat:27500,kenteken:"HL-774-C"},
-  {id:6, brand:"Triumph",        model:"Triumph Thruxton RS",                   modelKey:"Thruxton RS",                  year:2021,price:14500,km:7800, source:"2dehands",            loc:"Maastricht",type:"Retro / Café Racer",   cat:16900,kenteken:"TR-509-X"},
-  {id:7, brand:"Kawasaki",       model:"Kawasaki Z900 RS SE",                   modelKey:"Z900 RS SE",                   year:2022,price:13200,km:6400, source:"Marktplaats",         loc:"Groningen", type:"Retro / Café Racer",   cat:15500,kenteken:"ZR-334-K"},
-  {id:8, brand:"Kawasaki",       model:"Kawasaki Ninja H2",                     modelKey:"Ninja H2",                     year:2020,price:21000,km:8100, source:"AutoScout24",          loc:"Den Haag",  type:"Sport / Supersport",   cat:28000,kenteken:"H2-117-N"},
-  {id:9, brand:"KTM",            model:"KTM 1290 Super Duke RR",                modelKey:"1290 Super Duke RR",           year:2021,price:22000,km:3200, source:"eBay Motors",         loc:"Almere",    type:"Naked / Streetfighter",cat:26000,kenteken:"KS-103-D"},
-  {id:10,brand:"Honda",          model:"Honda CBR1000RR-R Fireblade SP",         modelKey:"CBR1000RR-R Fireblade SP",     year:2022,price:27500,km:5100, source:"Marktplaats",         loc:"Eindhoven", type:"Sport / Supersport",   cat:31000,kenteken:"FB-449-H"},
-  {id:11,brand:"Yamaha",         model:"Yamaha YZF-R1M",                         modelKey:"YZF-R1M",                      year:2021,price:21000,km:7200, source:"Motortreffer",        loc:"Zwolle",    type:"Sport / Supersport",   cat:26000,kenteken:"R1-882-Y"},
-  {id:12,brand:"Aprilia",        model:"Aprilia RSV4 Factory",                   modelKey:"RSV4 Factory",                 year:2022,price:19500,km:5800, source:"2dehands",            loc:"Tilburg",   type:"Sport / Supersport",   cat:23500,kenteken:"AP-733-F"},
-  {id:13,brand:"Suzuki",         model:"Suzuki Hayabusa",                        modelKey:"Hayabusa",                     year:2022,price:17500,km:6400, source:"Marktplaats",         loc:"Arnhem",    type:"Sport / Supersport",   cat:20500,kenteken:"BU-928-S"},
-  {id:14,brand:"Royal Enfield",  model:"Royal Enfield Himalayan 450",            modelKey:"Himalayan 450",                year:2024,price:7900, km:1200, source:"Marktplaats",         loc:"Amsterdam", type:"Adventure / Enduro",   cat:7800, kenteken:"HI-024-E"},
-  {id:15,brand:"BMW",            model:"BMW R 12 nineT",                         modelKey:"R 12 nineT",                   year:2024,price:16800,km:800,  source:"AutoScout24",          loc:"Utrecht",   type:"Retro / Café Racer",   cat:17200,kenteken:"N9-024-B"},
+  {id:1, brand:"BMW",            model:"BMW R 1250 GS Adventure",              modelKey:"R 1250 GS Adventure",         year:2021,price:21500,km:14200,source:"Marktplaats",         loc:"Amsterdam",lat:52.3676,lng:4.9041, type:"Adventure / Enduro",   cat:23900,kenteken:"KZ-123-B"},
+  {id:2, brand:"BMW",            model:"BMW S 1000 RR M",                       modelKey:"S 1000 RR M",                  year:2022,price:28500,km:4100, source:"AutoScout24",          loc:"Utrecht",lat:52.0907,lng:5.1214,   type:"Sport / Supersport",   cat:31000,kenteken:"BM-997-R"},
+  {id:3, brand:"Ducati",         model:"Ducati Panigale V4 R",                  modelKey:"Panigale V4 R",                year:2021,price:34500,km:2800, source:"eBay Motors",          loc:"Rotterdam",lat:51.9244,lng:4.4777, type:"Sport / Supersport",   cat:41000,kenteken:"DV-290-R"},
+  {id:4, brand:"Ducati",         model:"Ducati Scrambler Icon",                 modelKey:"Scrambler Icon",               year:2020,price:6800, km:9800, source:"Marktplaats",         loc:"Haarlem",lat:52.3874,lng:4.6462,   type:"Retro / Café Racer",   cat:10200,kenteken:"SC-611-D"},
+  {id:5, brand:"Harley-Davidson",model:"Harley-Davidson Heritage Classic Limited",modelKey:"Heritage Classic Limited",   year:2020,price:23500,km:5200, source:"Facebook Marketplace",loc:"Breda",lat:51.5719,lng:4.7683,     type:"Cruiser / Chopper",    cat:27500,kenteken:"HL-774-C"},
+  {id:6, brand:"Triumph",        model:"Triumph Thruxton RS",                   modelKey:"Thruxton RS",                  year:2021,price:14500,km:7800, source:"2dehands",            loc:"Maastricht",lat:50.8514,lng:5.691,type:"Retro / Café Racer",   cat:16900,kenteken:"TR-509-X"},
+  {id:7, brand:"Kawasaki",       model:"Kawasaki Z900 RS SE",                   modelKey:"Z900 RS SE",                   year:2022,price:13200,km:6400, source:"Marktplaats",         loc:"Groningen",lat:53.2194,lng:6.5665, type:"Retro / Café Racer",   cat:15500,kenteken:"ZR-334-K"},
+  {id:8, brand:"Kawasaki",       model:"Kawasaki Ninja H2",                     modelKey:"Ninja H2",                     year:2020,price:21000,km:8100, source:"AutoScout24",          loc:"Den Haag",lat:52.0705,lng:4.3007,  type:"Sport / Supersport",   cat:28000,kenteken:"H2-117-N"},
+  {id:9, brand:"KTM",            model:"KTM 1290 Super Duke RR",                modelKey:"1290 Super Duke RR",           year:2021,price:22000,km:3200, source:"eBay Motors",         loc:"Almere",lat:52.3508,lng:5.2647,    type:"Naked / Streetfighter",cat:26000,kenteken:"KS-103-D"},
+  {id:10,brand:"Honda",          model:"Honda CBR1000RR-R Fireblade SP",         modelKey:"CBR1000RR-R Fireblade SP",     year:2022,price:27500,km:5100, source:"Marktplaats",         loc:"Eindhoven",lat:51.4416,lng:5.4697, type:"Sport / Supersport",   cat:31000,kenteken:"FB-449-H"},
+  {id:11,brand:"Yamaha",         model:"Yamaha YZF-R1M",                         modelKey:"YZF-R1M",                      year:2021,price:21000,km:7200, source:"Motortreffer",        loc:"Zwolle",lat:52.5168,lng:6.083,    type:"Sport / Supersport",   cat:26000,kenteken:"R1-882-Y"},
+  {id:12,brand:"Aprilia",        model:"Aprilia RSV4 Factory",                   modelKey:"RSV4 Factory",                 year:2022,price:19500,km:5800, source:"2dehands",            loc:"Tilburg",lat:51.5555,lng:5.0913,   type:"Sport / Supersport",   cat:23500,kenteken:"AP-733-F"},
+  {id:13,brand:"Suzuki",         model:"Suzuki Hayabusa",                        modelKey:"Hayabusa",                     year:2022,price:17500,km:6400, source:"Marktplaats",         loc:"Arnhem",lat:51.9851,lng:5.8987,    type:"Sport / Supersport",   cat:20500,kenteken:"BU-928-S"},
+  {id:14,brand:"Royal Enfield",  model:"Royal Enfield Himalayan 450",            modelKey:"Himalayan 450",                year:2024,price:7900, km:1200, source:"Marktplaats",         loc:"Amsterdam",lat:52.3676,lng:4.9041, type:"Adventure / Enduro",   cat:7800, kenteken:"HI-024-E"},
+  {id:15,brand:"BMW",            model:"BMW R 12 nineT",                         modelKey:"R 12 nineT",                   year:2024,price:16800,km:800,  source:"AutoScout24",          loc:"Utrecht",lat:52.0907,lng:5.1214,   type:"Retro / Café Racer",   cat:17200,kenteken:"N9-024-B"},
 ];
 const LISTINGS_BASE=RAW.map(l=>{const mv=calcMV(l.cat,l.year,l.km,l.modelKey);return{...l,mv,score:getScore(l.price,mv.fair)};});
 
@@ -341,7 +341,7 @@ function DetailModal({listing,analytics,onClose}){
 // ══════════════════════════════════════════════════════════════════════════════
 // LISTING CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function ListingCard({listing,analytics,onOpen}){
+function ListingCard({listing,analytics,onOpen,distKm,fmtDist}){
   const[hov,setHov]=useState(false);
   const{score,mv,price,cat,brand,kenteken,year,km,model}=listing;
   const saving=mv.fair-price,tierCol=TIER_COLORS[mv.tier]||"#374151",brandCol=BRAND_COLORS[brand]||"#ff6b00";
@@ -369,7 +369,17 @@ function ListingCard({listing,analytics,onOpen}){
           <div style={{fontSize:"14px",fontWeight:"800",color:"#fff",lineHeight:1.2}}>{model.replace(brand+" ","")}</div>
           <div style={{fontSize:"9px",color:"#2a2a2a",marginTop:"1px"}}>{listing.type} · {listing.year} · {listing.loc}</div>
         </div>
-        <div style={{fontSize:"10px",color:"#333"}}>{km.toLocaleString("nl-NL")} km · {listing.source}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:"10px",color:"#333"}}>{km.toLocaleString("nl-NL")} km · {listing.source}</div>
+          {(()=>{const d=distKm?.(listing.lat,listing.lng),f=fmtDist?.(d);return f?(
+            <span style={{display:"inline-flex",alignItems:"center",gap:"3px",background:d<20?"#001508":d<60?"#0a1020":"#111",
+              border:`1px solid ${d<20?"#69f0ae44":d<60?"#60a5fa33":"#1a1a1a"}`,
+              padding:"2px 7px",borderRadius:"2px",fontSize:"8px",
+              color:d<20?"#69f0ae":d<60?"#60a5fa":"#444",fontWeight:"700",letterSpacing:"1px"}}>
+              📍 {f}
+            </span>
+          ):null;})()}
+        </div>
         <div style={{background:score.bg,border:`1px solid ${score.color}22`,borderRadius:"2px",padding:"5px 8px"}}>
           <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
             <span style={{fontSize:"8px",color:score.color,fontWeight:"700",letterSpacing:"1px"}}>{score.icon} {score.short}</span>
@@ -434,7 +444,9 @@ export default function MotorShop(){
   const[query,setQuery]=useState("");
   const[maxPrice,setMaxPrice]=useState("");
   const[maxKm,setMaxKm]=useState("");
-  const[sorting,setSorting]=useState("score");
+  const[sorting,setSorting]=useState("nearest");
+  const[userPos,setUserPos]=useState(null);     // {lat,lng}
+  const[gpsState,setGpsState]=useState("idle"); // idle|loading|granted|denied
   const[onlyDeals,setOnlyDeals]=useState(false);
   const[scanning,setScanning]=useState(false);
   const[scanLog,setScanLog]=useState([]);
@@ -447,6 +459,29 @@ export default function MotorShop(){
 
   // Laad analytics on mount
   useEffect(()=>{loadAnalytics().then(setAnalytics);},[]);
+
+  // GPS — vraag locatie op bij eerste load
+  useEffect(()=>{
+    if(!("geolocation" in navigator)) return;
+    setGpsState("loading");
+    navigator.geolocation.getCurrentPosition(
+      pos=>{
+        setUserPos({lat:pos.coords.latitude,lng:pos.coords.longitude});
+        setGpsState("granted");
+      },
+      ()=>setGpsState("denied"),
+      {enableHighAccuracy:false,timeout:8000,maximumAge:300000}
+    );
+  },[]);
+
+  // Afstand in km (Haversine)
+  const distKm=(lat2,lng2)=>{
+    if(!userPos||lat2==null||lng2==null) return null;
+    const R=6371,dLat=(lat2-userPos.lat)*Math.PI/180,dLng=(lng2-userPos.lng)*Math.PI/180;
+    const a=Math.sin(dLat/2)**2+Math.cos(userPos.lat*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  };
+  const fmtDist=km=>km===null?null:km<1?"< 1 km":km<10?`${Math.round(km)} km`:km<100?`${Math.round(km/5)*5} km`:"100+ km";
 
   // Analytics handler
   const handleAnalytics=useCallback((updated)=>{
@@ -477,6 +512,10 @@ export default function MotorShop(){
     if(sorting==="price_desc") return b.price-a.price;
     if(sorting==="km_asc") return a.km-b.km;
     if(sorting==="popular") return(analytics.modelClicks[b.model]?.unique||0)-(analytics.modelClicks[a.model]?.unique||0);
+    if(sorting==="nearest"){
+      const da=distKm(a.lat,a.lng)??99999, db2=distKm(b.lat,b.lng)??99999;
+      return da-db2;
+    }
     return 0;
   });
 
@@ -549,6 +588,27 @@ export default function MotorShop(){
                 <div style={{fontSize:"7px",color:"#2a2a2a",letterSpacing:"2px"}}>{s.l}</div>
               </div>
             ))}
+            {/* GPS status pill */}
+            <div onClick={()=>{
+              if(gpsState==="denied"||gpsState==="idle"){
+                setGpsState("loading");
+                navigator.geolocation?.getCurrentPosition(
+                  p=>{setUserPos({lat:p.coords.latitude,lng:p.coords.longitude});setGpsState("granted");},
+                  ()=>setGpsState("denied"),
+                  {enableHighAccuracy:false,timeout:8000}
+                );
+              }
+            }} style={{display:"flex",alignItems:"center",gap:"6px",padding:"6px 12px",borderRadius:"3px",cursor:gpsState==="granted"?"default":"pointer",
+              background:gpsState==="granted"?"#001508":gpsState==="loading"?"#111":"#111",
+              border:`1px solid ${gpsState==="granted"?"#69f0ae44":gpsState==="loading"?"#ff6b0033":"#1e1e1e"}`}}>
+              <span style={{fontSize:"13px"}}>{gpsState==="granted"?"📍":gpsState==="loading"?"⟳":"🔍"}</span>
+              <div>
+                <div style={{fontSize:"8px",fontWeight:"700",letterSpacing:"1px",color:gpsState==="granted"?"#69f0ae":gpsState==="loading"?"#ff6b00":"#333"}}>
+                  {gpsState==="granted"?"LOCATIE ACTIEF":gpsState==="loading"?"LOCATIE...":gpsState==="denied"?"GEEN TOEGANG":"LOCATIE"}
+                </div>
+                {userPos&&<div style={{fontSize:"7px",color:"#2a2a2a",letterSpacing:"1px"}}>{userPos.lat.toFixed(3)}°N {userPos.lng.toFixed(3)}°E</div>}
+              </div>
+            </div>
             <button onClick={()=>setShowDash(true)}
               style={{background:"none",border:"1px solid #222",color:"#444",padding:"6px 12px",fontSize:"10px",letterSpacing:"2px",cursor:"pointer",fontFamily:"inherit",transition:"all 0.2s"}}
               onMouseEnter={e=>{e.target.style.borderColor="#ff6b00";e.target.style.color="#ff6b00"}}
@@ -612,6 +672,7 @@ export default function MotorShop(){
             <div style={{display:"flex",gap:"8px",alignItems:"center"}}>
               <span style={{fontSize:"9px",color:"#1e1e1e"}}>{filtered.length} RESULTATEN</span>
               <select value={sorting} onChange={e=>setSorting(e.target.value)} style={{width:"auto",padding:"4px 9px",fontSize:"10px"}}>
+                <option value="nearest">Dichtstbij eerst</option>
                 <option value="score">Beste waarde eerst</option>
                 <option value="popular">Populairste eerst</option>
                 <option value="price_asc">Prijs laag–hoog</option>
@@ -627,7 +688,7 @@ export default function MotorShop(){
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:"10px"}}>
             {gridItems.map((item,i)=>(
               <div key={`${item.type}-${i}`} style={{animation:"fadeUp 0.4s ease both",animationDelay:`${Math.min(i,12)*0.05}s`}}>
-                {item.type==="listing"&&<ListingCard listing={item.listing} analytics={analytics} onOpen={handleOpen}/>}
+                {item.type==="listing"&&<ListingCard listing={item.listing} analytics={analytics} onOpen={handleOpen} distKm={distKm} fmtDist={fmtDist}/>}
                 {item.type==="native"&&<NativeAd ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
                 {item.type==="sponsored"&&<SponsoredListing ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
               </div>

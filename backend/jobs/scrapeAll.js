@@ -7,7 +7,8 @@ import { v4 as uuid }                       from "uuid";
 import pLimit                               from "p-limit";
 import { getBrowser, closeBrowser }         from "../utils/browser.js";
 import { deduplicateBatch }                 from "../utils/dedup.js";
-import { analyseKmStand }                   from "../utils/nap.js";      // gedeelde module
+import { analyseKmStand }                   from "../utils/nap.js";
+import { geocodeListings }                  from "../utils/geocoder.js";      // gedeelde module
 import { db }                               from "../utils/database.js";
 import { logger }                           from "../utils/logger.js";
 import { MarktplaatsScraper }               from "../scrapers/marktplaats.js";  // FIX: was ./
@@ -128,8 +129,12 @@ export async function runScrapeAll(searchQuery = "", platforms = null) {
     // ── Stap 3: RDW enrichment (parallel) ────────────────────────────────────
     const enriched = await enrichWithRDW(allRaw);
 
+    // ── Stap 3b: Geocoding (locatie → lat/lng) ──────────────────────────────
+    logger.info("Geocoding locaties...");
+    const geoEnriched = await geocodeListings(enriched);
+
     // ── Stap 4: Deduplicatie ─────────────────────────────────────────────────
-    const { unique, duplicates, crossPlatform } = deduplicateBatch(enriched);
+    const { unique, duplicates, crossPlatform } = deduplicateBatch(geoEnriched);
     stats.duplicates = duplicates.length + crossPlatform.length;
 
     // ── Stap 5: Upsert in database (geen try/catch per row meer) ──────────────

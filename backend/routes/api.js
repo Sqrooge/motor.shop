@@ -159,3 +159,64 @@ function safeParseJson(val, fallback) {
 }
 
 export default router;
+
+// ── GET /api/listings/nearby ──────────────────────────────────────────────────
+// Geeft listings gesorteerd op afstand, dichtstbijzijnde eerst
+// Query params: lat, lng (verplicht), maxDist (km, optioneel, default 250)
+// Plus alle normale filters: brand, type, source, maxPrice, maxKm, query
+router.get("/listings/nearby", (req, res) => {
+  const { lat, lng, maxDist = 250 } = req.query;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ ok: false, error: "lat en lng zijn verplicht" });
+  }
+
+  const userLat = parseFloat(lat);
+  const userLng = parseFloat(lng);
+
+  if (isNaN(userLat) || isNaN(userLng) ||
+      userLat < -90 || userLat > 90 ||
+      userLng < -180 || userLng > 180) {
+    return res.status(400).json({ ok: false, error: "Ongeldige coördinaten" });
+  }
+
+  try {
+    const { getListingsWithCoords } = await import("../utils/database.js");
+    const listings = getListingsWithCoords({
+      brand:    req.query.brand    ? sanitize(req.query.brand)    : undefined,
+      type:     req.query.type     ? sanitize(req.query.type)     : undefined,
+      source:   req.query.source   ? sanitize(req.query.source)   : undefined,
+      maxPrice: req.query.maxPrice ? clamp(req.query.maxPrice, 0, 999999) : undefined,
+      maxKm:    req.query.maxKm    ? clamp(req.query.maxKm, 0, 9999999)   : undefined,
+      query:    req.query.query    ? sanitize(req.query.query, 50)        : undefined,
+    });
+
+    // Haversine afstand berekenen + filteren + sorteren
+    const maxKm   = parseFloat(maxDist) || 250;
+    const withDist = listings
+      .map(l => ({
+        ...l,
+        images:      safeParseJson(l.images, []),
+        distanceKm:  haversine(userLat, userLng, l.lat, l.lng),
+      }))
+      .filter(l => l.distanceKm <= maxKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 200);
+
+    res.json({ ok: true, count: withDist.length, userLat, userLng, listings: withDist });
+  } catch (err) {
+    logger.error("GET /listings/nearby", { error: err.message });
+    res.status(500).json({ ok: false, error: "Serverfout" });
+  }
+});
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R    = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a    = Math.sin(dLat / 2) ** 2
+             + Math.cos((lat1 * Math.PI) / 180)
+             * Math.cos((lat2 * Math.PI) / 180)
+             * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}

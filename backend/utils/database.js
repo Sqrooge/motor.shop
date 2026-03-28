@@ -5,7 +5,8 @@
 import Database from "better-sqlite3";
 import path     from "path";
 import fs       from "fs";
-import { logger } from "./logger.js";
+import { logger }           from "./logger.js";
+import { initGeocodeCache } from "./geocoder.js";
 
 const DB_PATH = process.env.DB_PATH || "./data/motorshop.db";
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
@@ -19,6 +20,8 @@ export function getDb() {
     _db.pragma("cache_size = -8000");   // 8MB page cache
     _db.pragma("synchronous = NORMAL"); // veilig + snel (WAL mode)
     init(_db);
+    migrate(_db);
+    initGeocodeCache(_db);
     cacheStatements(_db);
     logger.info(`Database geopend: ${DB_PATH}`);
   }
@@ -39,6 +42,8 @@ function init(db) {
       km              INTEGER,
       type            TEXT,
       location        TEXT,
+      lat             REAL,
+      lng             REAL,
       source          TEXT NOT NULL,
       source_url      TEXT,
       source_id       TEXT,
@@ -106,6 +111,13 @@ function init(db) {
 // ── Gecachte prepared statements ─────────────────────────────────────────────
 // Eenmalig voorbereid — sneller dan elke keer opnieuw prepare()
 const stmts = {};
+function migrate(db) {
+  // Voeg lat/lng toe aan bestaande databases zonder die kolommen
+  const cols = db.pragma("table_info(listings)").map(c => c.name);
+  if (!cols.includes("lat"))  db.exec("ALTER TABLE listings ADD COLUMN lat  REAL");
+  if (!cols.includes("lng"))  db.exec("ALTER TABLE listings ADD COLUMN lng  REAL");
+}
+
 function cacheStatements(db) {
   stmts.getListings = (cnd, paramCount) =>
     db.prepare(`SELECT * FROM listings WHERE ${cnd} ORDER BY last_seen DESC LIMIT ? OFFSET ?`);
@@ -122,13 +134,13 @@ function cacheStatements(db) {
   stmts.insert = db.prepare(`
     INSERT INTO listings (
       id, hash, kenteken, brand, model, model_key, year, price, km,
-      type, location, source, source_url, source_id, description,
+      type, location, lat, lng, source, source_url, source_id, description,
       images, seller_name, seller_type, catalogus, fair_value,
       score_label, score_color, nap_status, nap_score,
       rdw_data, apk_history, first_seen, last_seen, last_updated, active
     ) VALUES (
       @id, @hash, @kenteken, @brand, @model, @model_key, @year, @price, @km,
-      @type, @location, @source, @source_url, @source_id, @description,
+      @type, @location, @lat, @lng, @source, @source_url, @source_id, @description,
       @images, @seller_name, @seller_type, @catalogus, @fair_value,
       @score_label, @score_color, @nap_status, @nap_score,
       @rdw_data, @apk_history, @first_seen, @last_seen, @last_updated, @active
@@ -137,13 +149,13 @@ function cacheStatements(db) {
   stmts.upsert = db.prepare(`
     INSERT INTO listings (
       id, hash, kenteken, brand, model, model_key, year, price, km,
-      type, location, source, source_url, source_id, description,
+      type, location, lat, lng, source, source_url, source_id, description,
       images, seller_name, seller_type, catalogus, fair_value,
       score_label, score_color, nap_status, nap_score,
       rdw_data, apk_history, first_seen, last_seen, last_updated, active
     ) VALUES (
       @id, @hash, @kenteken, @brand, @model, @model_key, @year, @price, @km,
-      @type, @location, @source, @source_url, @source_id, @description,
+      @type, @location, @lat, @lng, @source, @source_url, @source_id, @description,
       @images, @seller_name, @seller_type, @catalogus, @fair_value,
       @score_label, @score_color, @nap_status, @nap_score,
       @rdw_data, @apk_history, @first_seen, @last_seen, @last_updated, @active
@@ -156,6 +168,8 @@ function cacheStatements(db) {
       rdw_data     = COALESCE(excluded.rdw_data,    rdw_data),
       apk_history  = COALESCE(excluded.apk_history, apk_history),
       catalogus    = COALESCE(excluded.catalogus,   catalogus),
+      lat          = COALESCE(excluded.lat, lat),
+      lng          = COALESCE(excluded.lng, lng),
       last_seen    = excluded.last_seen,
       last_updated = excluded.last_updated,
       active       = 1
@@ -298,3 +312,27 @@ export const db = {
   kentekenLookup: (k)  => stmts.kentekenLookup.get(k),
   hashLookup:     (h)  => stmts.hashLookup.get(h),
 };
+
+// ── Spatial helpers (toegevoegd voor GPS-sortering) ───────────────────────────
+// SQLite heeft geen ingebouwde Haversine — we halen listings op en sorteren in JS
+// Dit is performant genoeg voor <100k listings; voor meer: gebruik SpatiaLite
+export function getListingsWithCoords(filters = {}) {
+  const _db  = getDb();
+  const cnd  = ["active = 1", "lat IS NOT NULL", "lng IS NOT NULL"];
+  const val  = [];
+
+  if (filters.brand)    { cnd.push("brand = ?");                      val.push(filters.brand); }
+  if (filters.type)     { cnd.push("type = ?");                       val.push(filters.type); }
+  if (filters.source)   { cnd.push("source = ?");                     val.push(filters.source); }
+  if (filters.maxPrice) { cnd.push("price <= ?");                     val.push(parseInt(filters.maxPrice)); }
+  if (filters.maxKm)    { cnd.push("km <= ?");                        val.push(parseInt(filters.maxKm)); }
+  if (filters.query)    { cnd.push("(brand LIKE ? OR model LIKE ?)"); val.push(`%${filters.query}%`, `%${filters.query}%`); }
+  if (filters.maxDist)  { /* gefilterd in JS na haversine */ }
+
+  return _db.prepare(
+    `SELECT id, brand, model, year, price, km, type, location, source, source_url,
+            lat, lng, nap_status, nap_score, fair_value, score_label, kenteken,
+            last_seen, images
+     FROM listings WHERE ${cnd.join(" AND ")} LIMIT 2000`
+  ).all(...val);
+}
