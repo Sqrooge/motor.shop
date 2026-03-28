@@ -10,7 +10,7 @@
     "worker": "node jobs/worker.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.21.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "playwright": "^1.44.0",
@@ -32,7 +32,7 @@
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^1.0.0",
     "passport-apple": "^2.0.2",
-    "express-session": "^1.18.0",
+    "express-session": "^1.18.1",
     "connect-sqlite3": "^0.9.15",
     "jsonwebtoken": "^9.0.2",
     "cookie-parser": "^1.4.6",
