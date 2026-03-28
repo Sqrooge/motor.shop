@@ -8,7 +8,8 @@ import pLimit                               from "p-limit";
 import { getBrowser, closeBrowser }         from "../utils/browser.js";
 import { deduplicateBatch }                 from "../utils/dedup.js";
 import { analyseKmStand }                   from "../utils/nap.js";
-import { geocodeListings }                  from "../utils/geocoder.js";      // gedeelde module
+import { geocodeListings }                  from "../utils/geocoder.js";
+import { runAlertEngine }                   from "./alertEngine.js";      // gedeelde module
 import { db }                               from "../utils/database.js";
 import { logger }                           from "../utils/logger.js";
 import { MarktplaatsScraper }               from "../scrapers/marktplaats.js";  // FIX: was ./
@@ -138,17 +139,30 @@ export async function runScrapeAll(searchQuery = "", platforms = null) {
     stats.duplicates = duplicates.length + crossPlatform.length;
 
     // ── Stap 5: Upsert in database (geen try/catch per row meer) ──────────────
-    const now = new Date().toISOString();
+    const now        = new Date().toISOString();
+    const newIds     = [];   // IDs van gloednieuwe listings — voor alert engine
     for (const listing of unique) {
       listing.last_seen    = now;
       listing.last_updated = now;
       const { isNew } = db.upsert(listing);
-      isNew ? stats.new++ : stats.updated++;
+      if (isNew) { stats.new++; newIds.push(listing.id); }
+      else stats.updated++;
     }
 
     // Cross-platform: update last_seen op bestaande listing
     for (const { existingId } of crossPlatform) {
       db.update(existingId, { last_seen: now, last_updated: now });
+    }
+
+    // ── Stap 6: Alert engine ─────────────────────────────────────────────────
+    if (newIds.length > 0) {
+      try {
+        const alertStats = await runAlertEngine(runId, newIds);
+        stats.alerts = alertStats;
+        logger.info(`Alert engine: ${alertStats.emailsSent} emails, ${alertStats.matched} matches`);
+      } catch (err) {
+        logger.error(`Alert engine fout: ${err.message}`);
+      }
     }
 
     // Markeer listings die deze run niet meer gezien zijn als inactief

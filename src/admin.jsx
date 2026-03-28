@@ -172,6 +172,26 @@ export function AdminPanel({ user, onClose }) {
   const { data: runsData,  reload: reloadRuns  }    = useAdminData("runs");
   const { data: usersData, reload: reloadUsers }    = useAdminData("users");
   const { data: alertsData }                        = useAdminData("alerts");
+  const [emailTestResult, setEmailTestResult] = useState(null);
+  const [alertTrigResult, setAlertTrigResult] = useState(null);
+
+  const testEmail = async () => {
+    const r = await fetch(\`\${API}/api/admin/email/test\`, {
+      method:"POST", credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ to: user?.email }),
+    });
+    const d = await r.json();
+    setEmailTestResult(d.ok ? \`✅ Verstuurd naar \${d.to}\` : \`❌ \${d.error}\`);
+  };
+
+  const triggerAlerts = async () => {
+    const r = await fetch(\`\${API}/api/admin/alerts/trigger\`, {
+      method:"POST", credentials:"include",
+    });
+    const d = await r.json();
+    setAlertTrigResult(d.ok ? \`✅ \${d.message}\` : \`❌ \${d.error}\`);
+  };
 
   const TABS = [
     { id:"dashboard", label:"📊 Dashboard" },
@@ -334,7 +354,32 @@ export function AdminPanel({ user, onClose }) {
                 </div>
               </div>
 
-              {/* Gebruikers per provider */}
+              {/* Email & Alert tools */}
+          <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:"3px", padding:"14px 16px" }}>
+            <div style={{ fontSize:"9px", color:"#ff6b00", letterSpacing:"3px", marginBottom:"12px" }}>EMAIL & ALERTS</div>
+            <div style={{ display:"flex", gap:"10px", flexWrap:"wrap" }}>
+              <div>
+                <button onClick={testEmail}
+                  style={{ background:"#0d0d0d", border:"1px solid #222", color:"#888",
+                    padding:"8px 16px", fontSize:"11px", cursor:"pointer", fontFamily:"inherit",
+                    letterSpacing:"1px", borderRadius:"2px" }}>
+                  📧 Test email versturen
+                </button>
+                {emailTestResult && <div style={{ fontSize:"10px", color: emailTestResult.startsWith("✅")?"#69f0ae":"#f44336", marginTop:"6px" }}>{emailTestResult}</div>}
+              </div>
+              <div>
+                <button onClick={triggerAlerts}
+                  style={{ background:"#0d0d0d", border:"1px solid #222", color:"#888",
+                    padding:"8px 16px", fontSize:"11px", cursor:"pointer", fontFamily:"inherit",
+                    letterSpacing:"1px", borderRadius:"2px" }}>
+                  🔔 Alert engine handmatig starten
+                </button>
+                {alertTrigResult && <div style={{ fontSize:"10px", color: alertTrigResult.startsWith("✅")?"#69f0ae":"#f44336", marginTop:"6px" }}>{alertTrigResult}</div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Gebruikers per provider */}
               <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:"3px" }}>
                 <div style={{ padding:"10px 14px", borderBottom:"1px solid #1a1a1a",
                   fontSize:"9px", color:"#ff6b00", letterSpacing:"3px" }}>GEBRUIKERS PER PROVIDER</div>

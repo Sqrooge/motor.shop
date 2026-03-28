@@ -7,6 +7,8 @@ import { requireAdmin }  from "../utils/auth.js";
 import { db, getDb }     from "../utils/database.js";
 import { runScrapeAll }  from "../jobs/scrapeAll.js";
 import { logger }        from "../utils/logger.js";
+import { sendTestEmail } from "../utils/email.js";
+import { runAlertEngine } from "../jobs/alertEngine.js";
 
 const router = Router();
 router.use(requireAdmin); // alle routes hieronder zijn admin-only
@@ -163,6 +165,32 @@ router.delete("/geocache", (req, res) => {
   try {
     const info = getDb().prepare("DELETE FROM geocode_cache").run();
     res.json({ ok: true, deleted: info.changes });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ── POST /api/admin/email/test ────────────────────────────────────────────────
+router.post("/email/test", async (req, res) => {
+  const to = req.body?.to || req.user.email;
+  const result = await sendTestEmail(to);
+  res.json({ ok: result.ok, to, error: result.error });
+});
+
+// ── POST /api/admin/alerts/trigger ────────────────────────────────────────────
+// Handmatig de alert engine draaien op alle actieve listings
+router.post("/alerts/trigger", async (req, res) => {
+  try {
+    const db = getDb();
+    // Gebruik alle listings van afgelopen 24u als "nieuw"
+    const cutoff   = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const listings = db.prepare(
+      "SELECT id FROM listings WHERE active = 1 AND first_seen > ? LIMIT 500"
+    ).all(cutoff);
+    const ids = listings.map(l => l.id);
+    res.json({ ok: true, message: `Alert engine gestart met ${ids.length} listings` });
+    const result = await runAlertEngine("manual-admin", ids);
+    logger.info("Admin alert trigger klaar", result);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

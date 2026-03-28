@@ -41,13 +41,21 @@ export function initAuthSchema(db) {
       query       TEXT,
       active      INTEGER DEFAULT 1,
       created_at  TEXT NOT NULL,
-      last_hit    TEXT
+      last_hit    TEXT,
+      user_lat    REAL,
+      user_lng    REAL
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_provider    ON users(provider, provider_id);
     CREATE INDEX IF NOT EXISTS idx_users_email       ON users(email);
     CREATE INDEX IF NOT EXISTS idx_favorites_user    ON user_favorites(user_id);
     CREATE INDEX IF NOT EXISTS idx_alerts_user       ON user_alerts(user_id);
+
+    -- Migrations voor bestaande databases
+    `);
+  try { db.exec("ALTER TABLE user_alerts ADD COLUMN user_lat REAL"); } catch {}
+  try { db.exec("ALTER TABLE user_alerts ADD COLUMN user_lng REAL"); } catch {}
+  db.exec(`
   `);
 }
 
@@ -89,8 +97,8 @@ function getStmts() {
       "SELECT * FROM user_alerts WHERE user_id = ? AND active = 1 ORDER BY created_at DESC"
     ),
     addAlert: db.prepare(`
-      INSERT INTO user_alerts (id, user_id, brand, type, max_price, max_km, max_dist_km, query, created_at)
-      VALUES (@id, @user_id, @brand, @type, @max_price, @max_km, @max_dist_km, @query, @created_at)
+      INSERT INTO user_alerts (id, user_id, brand, type, max_price, max_km, max_dist_km, query, created_at, user_lat, user_lng)
+      VALUES (@id, @user_id, @brand, @type, @max_price, @max_km, @max_dist_km, @query, @created_at, @user_lat, @user_lng)
     `),
     deleteAlert: db.prepare(
       "UPDATE user_alerts SET active = 0 WHERE id = ? AND user_id = ?"
@@ -127,6 +135,7 @@ export const userDb = {
       brand: filters.brand || null, type: filters.type || null,
       max_price: filters.maxPrice || null, max_km: filters.maxKm || null,
       max_dist_km: filters.maxDist || null, query: filters.query || null,
+      user_lat: filters.userLat || null, user_lng: filters.userLng || null,
       created_at: new Date().toISOString(),
     });
     return id;

@@ -191,7 +191,7 @@ export function SignInModal({ onClose, onUser }) {
 }
 
 // ── User menu (na inloggen) ───────────────────────────────────────────────────
-export function UserMenu({ user, onLogout, onClose }) {
+export function UserMenu({ user, onLogout, onClose, onAlerts }) {
   return (
     <div onClick={onClose} style={{ position:"fixed", inset:0, zIndex:8000 }}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -211,7 +211,7 @@ export function UserMenu({ user, onLogout, onClose }) {
         {/* Menu items */}
         {[
           { label:"❤️  Mijn favorieten", action:"favorites" },
-          { label:"🔔  Mijn alerts",     action:"alerts" },
+          { label:"🔔  Mijn alerts",     action:"alerts",    onClick: onAlerts },
           { label:"👤  Profiel",          action:"profile" },
         ].map(item => (
           <div key={item.action} style={{ padding:"11px 16px", fontSize:"12px", color:"#888",

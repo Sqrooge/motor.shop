@@ -9,7 +9,8 @@ import {
 import {
   useAuth, useFirstVisitModal, SignInModal, UserMenu, UserAvatar,
 } from "./auth.jsx";
-import { AdminPanel } from "./admin.jsx";
+import { AdminPanel }   from "./admin.jsx";
+import { AlertManager } from "./alerts.jsx";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // RDW API
@@ -463,6 +464,7 @@ export default function MotorShop(){
   const [showSignIn, setShowSignIn]   = useFirstVisitModal(user, authLoading);
   const [showUserMenu,  setShowUserMenu]  = useState(false);
   const [showAdmin,     setShowAdmin]     = useState(false);
+  const [showAlerts,    setShowAlerts]    = useState(false);
   const logRef=useRef(null);
 
   // Laad analytics on mount
@@ -735,7 +737,8 @@ export default function MotorShop(){
 
       {selected&&<DetailModal listing={selected} analytics={analytics} onClose={()=>setSelected(null)}/>}
       {showSignIn&&!user&&<SignInModal onClose={()=>setShowSignIn(false)} onUser={()=>{}}/>}
-      {showUserMenu&&user&&<UserMenu user={user} onLogout={()=>{logout();setShowUserMenu(false);}} onClose={()=>setShowUserMenu(false)}/>}
+      {showUserMenu&&user&&<UserMenu user={user} onLogout={()=>{logout();setShowUserMenu(false);}} onClose={()=>setShowUserMenu(false)} onAlerts={()=>{setShowUserMenu(false);setShowAlerts(true);}}/>}
+      {showAlerts&&user&&<AlertManager userPos={userPos} onClose={()=>setShowAlerts(false)}/>}
       {showAdmin&&user?.admin&&<AdminPanel user={user} onClose={()=>setShowAdmin(false)}/>}
       {showDash&&<AnalyticsPanel analytics={analytics} onClose={()=>setShowDash(false)}/>}
     </div>
