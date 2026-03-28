@@ -12,6 +12,7 @@ import cookieParser  from "cookie-parser";
 import session       from "express-session";
 import { initAuthSchema } from "./utils/auth.js";
 import authRoutes, { passport } from "./routes/auth.js";
+import adminRoutes             from "./routes/admin.js";
 import { getDb }      from "./utils/database.js";
 import apiRoutes      from "./routes/api.js";
 import fs             from "fs";
@@ -58,8 +59,9 @@ app.use("/api/scrape", rateLimit({ windowMs: 60_000, max: 5,   message: { ok: fa
 app.use("/api",        rateLimit({ windowMs: 60_000, max: 300,  message: { ok: false, error: "Rate limit bereikt" } }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);
-app.use("/api", apiRoutes);
+app.use("/api/auth",  authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api",       apiRoutes);
 
 app.get("/health", (req, res) => res.json({
   ok: true, version: "0.1.0", uptime: Math.round(process.uptime()),

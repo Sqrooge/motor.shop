@@ -9,6 +9,7 @@ import {
 import {
   useAuth, useFirstVisitModal, SignInModal, UserMenu, UserAvatar,
 } from "./auth.jsx";
+import { AdminPanel } from "./admin.jsx";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // RDW API
@@ -460,7 +461,8 @@ export default function MotorShop(){
   const[analytics,setAnalytics]=useState({modelClicks:{},brandClicks:{},typeClicks:{},adClicks:{},sessions:[]});
   const { user, loading: authLoading, logout } = useAuth();
   const [showSignIn, setShowSignIn]   = useFirstVisitModal(user, authLoading);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showUserMenu,  setShowUserMenu]  = useState(false);
+  const [showAdmin,     setShowAdmin]     = useState(false);
   const logRef=useRef(null);
 
   // Laad analytics on mount
@@ -622,7 +624,13 @@ export default function MotorShop(){
               📊 DASHBOARD
             </button>
             {user
-              ? <UserAvatar user={user} onClick={()=>setShowUserMenu(v=>!v)}/>
+              ? <div style={{display:"flex",gap:"6px",alignItems:"center"}}>
+                  {user.admin&&<button onClick={()=>setShowAdmin(true)}
+                    style={{background:"#ff6b0022",border:"1px solid #ff6b0066",color:"#ff6b00",padding:"6px 12px",fontSize:"10px",fontWeight:"900",letterSpacing:"2px",cursor:"pointer",fontFamily:"inherit",borderRadius:"3px"}}>
+                    ⚡ ADMIN
+                  </button>}
+                  <UserAvatar user={user} onClick={()=>setShowUserMenu(v=>!v)}/>
+                </div>
               : <button onClick={()=>setShowSignIn(true)}
                   style={{background:"#ff6b00",border:"none",color:"#000",padding:"7px 16px",fontSize:"11px",fontWeight:"900",letterSpacing:"2px",cursor:"pointer",fontFamily:"inherit",borderRadius:"3px"}}>
                   INLOGGEN
@@ -728,6 +736,7 @@ export default function MotorShop(){
       {selected&&<DetailModal listing={selected} analytics={analytics} onClose={()=>setSelected(null)}/>}
       {showSignIn&&!user&&<SignInModal onClose={()=>setShowSignIn(false)} onUser={()=>{}}/>}
       {showUserMenu&&user&&<UserMenu user={user} onLogout={()=>{logout();setShowUserMenu(false);}} onClose={()=>setShowUserMenu(false)}/>}
+      {showAdmin&&user?.admin&&<AdminPanel user={user} onClose={()=>setShowAdmin(false)}/>}
       {showDash&&<AnalyticsPanel analytics={analytics} onClose={()=>setShowDash(false)}/>}
     </div>
   );

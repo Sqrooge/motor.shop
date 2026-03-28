@@ -135,10 +135,17 @@ export const userDb = {
   deleteAlert: (alertId, userId) => getStmts().deleteAlert.run(alertId, userId),
 };
 
+// ── Admin check ──────────────────────────────────────────────────────────────
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "m_s_d_bron@hotmail.com")
+  .split(",").map(e => e.trim().toLowerCase());
+
+export const isAdmin = (user) =>
+  !!(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+
 // ── JWT helpers ────────────────────────────────────────────────────────────────
 export function signToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, name: user.name, avatar: user.avatar_url },
+    { id: user.id, email: user.email, name: user.name, avatar: user.avatar_url, admin: isAdmin(user) },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES }
   );
@@ -150,6 +157,15 @@ export function verifyToken(token) {
 }
 
 // ── Auth middleware — zet req.user als token geldig ────────────────────────────
+export function requireAdmin(req, res, next) {
+  const token = extractToken(req);
+  const user  = token ? verifyToken(token) : null;
+  if (!user)           return res.status(401).json({ ok: false, error: "Niet ingelogd" });
+  if (!user.admin)     return res.status(403).json({ ok: false, error: "Geen toegang" });
+  req.user = user;
+  next();
+}
+
 export function requireAuth(req, res, next) {
   const token = extractToken(req);
   const user  = token ? verifyToken(token) : null;
