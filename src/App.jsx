@@ -11,6 +11,7 @@ import {
 } from "./auth.jsx";
 import { AdminPanel }   from "./admin.jsx";
 import { AlertManager } from "./alerts.jsx";
+import { useSettings }   from "./settings.js";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // RDW API
@@ -347,22 +348,27 @@ function PriceChart({ history, currentPrice, fairValue, catalogus }) {
   );
 }
 
-function DetailModal({listing,analytics,onClose}){
+function DetailModal({listing,analytics,onClose,useMock=true,showChart=true}){
   const{mv,score,cat,price,km,year,brand,model,kenteken,type,id}=listing;
   const rdw=useRDW(kenteken,year,km);
   const saving=mv.fair-price,gaugeVal=Math.max(0,Math.min(100,Math.round((2-price/mv.fair)*50)));
   const tierCol=TIER_COLORS[mv.tier]||"#374151",brandCol=BRAND_COLORS[brand]||"#ff6b00";
   const clicks=analytics?.modelClicks?.[model];
 
-  // Prijshistoriek — haal op van API of gebruik mock data voor prototype
+  // Prijshistoriek — mock of echte API, gestuurd door admin-instelling
   const [priceHistory, setPriceHistory] = useState(null);
   useEffect(() => {
-    // Mock data voor prototype — vervangt echte API call
-    const mockHistory = generateMockHistory(price, year);
-    setPriceHistory(mockHistory);
-    // In productie: fetch(`${API}/api/listings/${id}/price-history`, {credentials:"include"})
-    //   .then(r=>r.json()).then(d=>setPriceHistory(d.history||[]));
-  }, [id, price]);
+    if (!showChart) { setPriceHistory(null); return; }
+    if (useMock) {
+      setPriceHistory(generateMockHistory(price, year));
+    } else {
+      const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      fetch(`${apiBase}/api/listings/${id}/price-history`, { credentials:"include" })
+        .then(r => r.json())
+        .then(d => setPriceHistory(d.history?.length >= 2 ? d.history : generateMockHistory(price, year)))
+        .catch(() => setPriceHistory(generateMockHistory(price, year)));
+    }
+  }, [id, price, useMock, showChart]);
 
   function generateMockHistory(currentPrice, bouwjaar) {
     // Simuleer realistisch prijsverloop: geleidelijk dalend over 6-18 maanden
@@ -803,7 +809,8 @@ export default function MotorShop(){
   const[activeSrc,setActiveSrc]=useState("Alle");
   const[showDash,setShowDash]=useState(false);
   const[analytics,setAnalytics]=useState({modelClicks:{},brandClicks:{},typeClicks:{},adClicks:{},sessions:[]});
-  const { user, loading: authLoading, logout } = useAuth();
+  const { settings }                              = useSettings();
+  const { user, loading: authLoading, logout }    = useAuth();
   const [showSignIn, setShowSignIn]   = useFirstVisitModal(user, authLoading);
   const [showUserMenu,  setShowUserMenu]  = useState(false);
   const [showAdmin,     setShowAdmin]     = useState(false);
@@ -1022,7 +1029,7 @@ export default function MotorShop(){
         {results.length>0&&bannerAd&&<BannerAd ad={bannerAd} analytics={analytics} onAnalytics={handleAnalytics}/>}
 
         {/* TRENDING */}
-        {results.length>0&&<TrendingStrip analytics={analytics}/>}
+        {results.length>0&&settings.showTrendingStrip&&<TrendingStrip analytics={analytics}/>}
 
         {/* TABS + SORT */}
         {results.length>0&&(
@@ -1055,8 +1062,8 @@ export default function MotorShop(){
             {gridItems.map((item,i)=>(
               <div key={`${item.type}-${i}`} style={{animation:"fadeUp 0.4s ease both",animationDelay:`${Math.min(i,12)*0.05}s`}}>
                 {item.type==="listing"&&<ListingCard listing={item.listing} analytics={analytics} onOpen={handleOpen} distKm={distKm} fmtDist={fmtDist} user={user} onRequestLogin={()=>setShowSignIn(true)}/>}
-                {item.type==="native"&&<NativeAd ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
-                {item.type==="sponsored"&&<SponsoredListing ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
+                {item.type==="native"&&settings.showAds&&<NativeAd ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
+                {item.type==="sponsored"&&settings.showAds&&<SponsoredListing ad={item.ad} analytics={analytics} onAnalytics={handleAnalytics}/>}
               </div>
             ))}
           </div>
@@ -1078,7 +1085,7 @@ export default function MotorShop(){
         </div>
       </div>
 
-      {selected&&<DetailModal listing={selected} analytics={analytics} onClose={()=>setSelected(null)}/>}
+      {selected&&<DetailModal listing={selected} analytics={analytics} onClose={()=>setSelected(null)} useMock={settings.useMockPriceHistory} showChart={settings.showPriceChart}/>}
       {showSignIn&&!user&&<SignInModal onClose={()=>setShowSignIn(false)} onUser={()=>{}}/>}
       {showUserMenu&&user&&<UserMenu user={user} onLogout={()=>{logout();setShowUserMenu(false);}} onClose={()=>setShowUserMenu(false)} onAlerts={()=>{setShowUserMenu(false);setShowAlerts(true);}}/>}
       {showAlerts&&user&&<AlertManager userPos={userPos} onClose={()=>setShowAlerts(false)}/>}

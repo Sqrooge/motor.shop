@@ -2,9 +2,76 @@
 // ADMIN PANEL — alleen zichtbaar voor m_s_d_bron@hotmail.com
 // ══════════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef } from "react";
+import { useSettings, resetSettings, DEFAULTS } from "./settings.js";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 const PLATFORMS = ["Marktplaats","2dehands","AutoScout24","eBay Motors","Facebook Marketplace","Motortreffer"];
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SETTINGS UI HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function SettingsSection({ title, children }) {
+  return (
+    <div style={{ background:"#111", border:"1px solid #1a1a1a", borderRadius:"3px", overflow:"hidden" }}>
+      <div style={{ padding:"10px 16px", borderBottom:"1px solid #1a1a1a",
+        fontSize:"9px", color:"#ff6b00", letterSpacing:"3px" }}>{title}</div>
+      <div style={{ display:"grid" }}>{children}</div>
+    </div>
+  );
+}
+
+function SettingToggle({ label, desc, value, onChange, badge, badgeColor }) {
+  return (
+    <div style={{ padding:"14px 16px", borderBottom:"1px solid #0f0f0f",
+      display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"20px" }}>
+      <div style={{ flex:1 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"3px" }}>
+          <div style={{ fontSize:"13px", color:"#ccc", fontWeight:"600" }}>{label}</div>
+          {badge && (
+            <span style={{ fontSize:"8px", fontWeight:"800", letterSpacing:"1px",
+              color:badgeColor, background:`${badgeColor}18`,
+              border:`1px solid ${badgeColor}44`, padding:"1px 6px", borderRadius:"2px" }}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize:"11px", color:"#444", lineHeight:1.5 }}>{desc}</div>
+      </div>
+      {/* Toggle switch */}
+      <div onClick={() => onChange(!value)} style={{ flexShrink:0, marginTop:"2px",
+        width:"42px", height:"22px", borderRadius:"11px", cursor:"pointer",
+        background: value ? "#ff6b0033" : "#111",
+        border:`1px solid ${value ? "#ff6b00" : "#2a2a2a"}`,
+        position:"relative", transition:"all 0.25s" }}>
+        <div style={{ position:"absolute", top:"3px",
+          left: value ? "21px" : "3px", width:"14px", height:"14px",
+          borderRadius:"50%", background: value ? "#ff6b00" : "#333",
+          transition:"left 0.25s, background 0.25s",
+          boxShadow: value ? "0 0 8px rgba(255,107,0,0.5)" : "none" }}/>
+      </div>
+    </div>
+  );
+}
+
+function SettingSelect({ label, desc, value, onChange, options }) {
+  return (
+    <div style={{ padding:"14px 16px", borderBottom:"1px solid #0f0f0f",
+      display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:"20px" }}>
+      <div style={{ flex:1 }}>
+        <div style={{ fontSize:"13px", color:"#ccc", fontWeight:"600", marginBottom:"3px" }}>{label}</div>
+        <div style={{ fontSize:"11px", color:"#444", lineHeight:1.5 }}>{desc}</div>
+      </div>
+      <select value={value} onChange={e => onChange(e.target.value)}
+        style={{ flexShrink:0, background:"#0d0d0d", color:"#fff",
+          border:"1px solid #222", borderRadius:"3px", padding:"6px 10px",
+          fontSize:"12px", outline:"none", fontFamily:"inherit", cursor:"pointer" }}>
+        {options.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 function useAdminData(endpoint, deps = []) {
   const [data,    setData]    = useState(null);
@@ -174,6 +241,7 @@ export function AdminPanel({ user, onClose }) {
   const { data: alertsData }                        = useAdminData("alerts");
   const [emailTestResult, setEmailTestResult] = useState(null);
   const [alertTrigResult, setAlertTrigResult] = useState(null);
+  const { settings, setSetting } = useSettings();
 
   const testEmail = async () => {
     const r = await fetch(\`\${API}/api/admin/email/test\`, {
@@ -198,7 +266,8 @@ export function AdminPanel({ user, onClose }) {
     { id:"platforms", label:"🔌 Platforms" },
     { id:"runs",      label:"⏱ Runs" },
     { id:"users",     label:"👤 Gebruikers" },
-    { id:"alerts",    label:"🔔 Alerts" },
+    { id:"alerts",      label:"🔔 Alerts" },
+    { id:"settings",    label:"⚙️  Instellingen" },
   ];
 
   const triggerScrape = async (platforms = null) => {
@@ -481,6 +550,100 @@ export function AdminPanel({ user, onClose }) {
                     </tbody>
                   </table>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ── INSTELLINGEN ──────────────────────────────────────────── */}
+          {tab === "settings" && (
+            <div style={{ display:"grid", gap:"16px" }}>
+              <div style={{ fontSize:"14px", fontWeight:"900", color:"#fff", letterSpacing:"2px" }}>
+                INSTELLINGEN
+              </div>
+
+              {/* Prijshistoriek */}
+              <SettingsSection title="PRIJSHISTORIEK GRAFIEK">
+                <SettingToggle
+                  label="Mock data gebruiken"
+                  desc="Aan: gesimuleerde prijsdata tonen. Uit: echte API data ophalen (vereist live backend)."
+                  value={settings.useMockPriceHistory}
+                  onChange={v => setSetting("useMockPriceHistory", v)}
+                  badge={settings.useMockPriceHistory ? "MOCK" : "LIVE"}
+                  badgeColor={settings.useMockPriceHistory ? "#ffa726" : "#69f0ae"}
+                />
+                <SettingToggle
+                  label="Grafiek tonen in detail modal"
+                  desc="Verberg de prijshistoriek grafiek volledig."
+                  value={settings.showPriceChart}
+                  onChange={v => setSetting("showPriceChart", v)}
+                />
+              </SettingsSection>
+
+              {/* Data bronnen */}
+              <SettingsSection title="DATA BRONNEN">
+                <SettingToggle
+                  label="Mock listings gebruiken"
+                  desc="Aan: gebruik ingebouwde demo-listings. Uit: haal echte listings op van backend API."
+                  value={settings.useMockListings}
+                  onChange={v => setSetting("useMockListings", v)}
+                  badge={settings.useMockListings ? "MOCK" : "LIVE API"}
+                  badgeColor={settings.useMockListings ? "#ffa726" : "#69f0ae"}
+                />
+              </SettingsSection>
+
+              {/* UI */}
+              <SettingsSection title="INTERFACE">
+                <SettingToggle
+                  label="Trending strip tonen"
+                  desc="De '🔥 Trending nu' balk boven de resultaten."
+                  value={settings.showTrendingStrip}
+                  onChange={v => setSetting("showTrendingStrip", v)}
+                />
+                <SettingToggle
+                  label="Advertenties tonen"
+                  desc="Native ads en gesponsorde listings in het grid."
+                  value={settings.showAds}
+                  onChange={v => setSetting("showAds", v)}
+                />
+              </SettingsSection>
+
+              {/* Zoeken */}
+              <SettingsSection title="ZOEKEN & AFSTAND">
+                <SettingSelect
+                  label="Standaard maximale afstand"
+                  desc="Standaardwaarde in de afstandsfilter (km)."
+                  value={settings.maxDistDefault}
+                  onChange={v => setSetting("maxDistDefault", parseInt(v))}
+                  options={[
+                    { value: 50,  label: "50 km" },
+                    { value: 100, label: "100 km" },
+                    { value: 150, label: "150 km" },
+                    { value: 250, label: "250 km — heel Nederland/België" },
+                  ]}
+                />
+              </SettingsSection>
+
+              {/* Debug */}
+              <SettingsSection title="DEVELOPER">
+                <SettingToggle
+                  label="Debug modus"
+                  desc="Toont extra informatie in de browser console."
+                  value={settings.debugMode}
+                  onChange={v => setSetting("debugMode", v)}
+                />
+              </SettingsSection>
+
+              {/* Reset */}
+              <div style={{ paddingTop:"8px", borderTop:"1px solid #111" }}>
+                <button onClick={() => { if(confirm("Alle instellingen terugzetten naar standaard?")) resetSettings(); }}
+                  style={{ background:"none", border:"1px solid #333", color:"#555",
+                    padding:"9px 18px", fontSize:"11px", cursor:"pointer",
+                    fontFamily:"inherit", letterSpacing:"1px", borderRadius:"3px",
+                    transition:"all 0.2s" }}
+                  onMouseEnter={e => { e.target.style.borderColor="#f44336"; e.target.style.color="#f44336"; }}
+                  onMouseLeave={e => { e.target.style.borderColor="#333";    e.target.style.color="#555"; }}>
+                  ↺ Standaardinstellingen herstellen
+                </button>
               </div>
             </div>
           )}
